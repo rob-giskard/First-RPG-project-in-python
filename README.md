@@ -5,4 +5,8 @@ takes the player on a text based adventure situated in a haunted house.
 Defeat monsters, loot treasures and collect keys to advance. 
 
 I started to learn programming only very recently but already find myself 
-awed by the possibilities.  
+awed by the possibilities. This mini-game seeks to imitate a MUD ("multi-user dungeon")
+experience in a single player mode, with full control of the various gameplay elements
+in the playr's hands. 
+
+
