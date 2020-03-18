@@ -9,6 +9,11 @@ awed by the possibilities. This mini-game seeks to imitate a MUD ("multi-user du
 experience in a single player mode, with full control of the various gameplay elements
 in the player's hands.
 
-Planning to add more machanics like ammunition system, various conditions altering player behavior (paralyzed, blinded, deafened,...), NPCs and more. Ideas and insights will be appreciated. 
+Newest additions:
+- ammunition system (shotgun shells and pistol bullets)
+- poisoned condition (tracked along other player statistics)
+- rooms with item requirements for progress
+- free player movement 
+
 
 
