@@ -8,12 +8,15 @@ def printUnder(text):
     print(colored(text,attrs=['underline']))
 def printYellow(text):
     print(colored(text, 'yellow'))
+def printBoldYellow(text):
+    print(colored(text, 'yellow', attrs=['bold']))
 def printGreen(text):
     print(colored(text, 'green'))
 def printRed(text):
     print(colored(text, 'red'))
 
 #CLASSES ARE DEFINED HERE
+
 
 class Entity:
 #instances of this class are created with a number of hit points (HP)
@@ -25,18 +28,20 @@ class Entity:
         self.maxHP = maxHP
         self.HP = maxHP
         self.AC = AC
-        self.alive = True
+        self.alive = 1
         self.has_usables = 0
         self.stunned = 0
         self.shells = 0
         self.bullets = 6
-        self.number_of_keys=0
+        self.number_of_keys = 0
         self.condition = 'Stable'
         self.weapon = ''
         self.wants_end = 0
         self.in_house = 1
         self.in_room = 0
-                
+        self.location = 'Foyer'
+        self.fighting = 0
+        
     def __str__(self):
         return ('This ' + self.name + ' has ' + str(self.HP) + ' HP and '+ str(self.AC) + ' AC.') 
     
@@ -69,6 +74,7 @@ class Entity:
             self.HP = self.maxHP
         print (self.name + ' has rested. Currently has ' + str(self.HP) + ' out of ' + str(self.maxHP) + ' hit points.') 
     
+
 class Player(Entity):
              
     def checksInventory(self):
@@ -82,19 +88,21 @@ class Player(Entity):
     def loots(self, container_to_loot):
         if len(container_to_loot) != 0: 
             for item in container_to_loot:
-                backpack.add(item)
                 if 'Shotgun shell' in item:
                     player.shells += 1
                 elif 'Bullet' in item:
                     player.bullets += 1
                 elif 'key' in item:
                     self.number_of_keys+=1
+                    backpack.add(item)
+                else:
+                    backpack.add(item)
             print ('\n -> Stuff moved to your backpack.')
             
     def choosesWeapon(self):
         print('\nYou have the following weapons at your disposal:')
         for key in weapon_arsenal.keys():
-            print(key)
+            print('  ' + key)
         weapon_type = ''
         while weapon_type == '':
             weapon_type = input('Which weapon to use?').lower()
@@ -146,7 +154,7 @@ class Player(Entity):
             printGreen('\nUsable items:')
             for i in usables:
                 if i in backpack.contents:
-                    print (i)
+                    print ('  ' + i)
         else:
             print('\n * Whoopsie, you are all out of usable items. * \n')
             self.has_usables = 0
@@ -155,7 +163,7 @@ class Player(Entity):
     def usesItem(self):
         item_to_use = ''
         while item_to_use == '':
-            item_to_use = input('Select item to use, check PST or Close the backpack.').lower()
+            item_to_use = input('\npSelect item to use, check PST or Close the backpack.').lower()
         if item_to_use.startswith('b') and 'Bandage' in backpack.contents:
             self.HP += random.randint(6,12)
             if self.HP > self.maxHP:
@@ -163,7 +171,7 @@ class Player(Entity):
             printYellow('    You tend to your wounds and are healed to ' + str(self.HP) + ' HP.')
             backpack.remove('Bandage')
         elif item_to_use.startswith('f') and 'Flashbang' in backpack.contents:
-            if fighting:
+            if player.fighting:
                 monster.isStunned()
             else:
                 printYellow('\n    The flashbang discharges in your hand leaving you momentarily dazed. Well played.')
@@ -183,25 +191,71 @@ class Player(Entity):
         elif item_to_use.startswith('m'):
             printYellow('\n    You drink the unknown liquid and taste death. Everything fades to black.')
             backpack.remove('Mysterious glass vial')
-            player.alive, player.in_room, player.in_house,player.wants_end = False,0,0,1
+            player.alive, player.in_house = 0,0
         elif item_to_use.startswith('p'):
             player.checksStats()
         elif item_to_use.startswith('c'):
             pass
         else: 
             print('***Item not usable.***')
+    
+    def seeExits(self):
+        pass
+
+
+    def moves(self):
+        move_chosen = 0
+        while not move_chosen:
+            direction = input('\nChoose a direction to move to.').lower()
+            while len(direction) == 0 or direction.lower()[0] not in ['n','s','e','w']:
+                direction = input('Invalid direction. Where do you want to go?').lower()
+            if direction.startswith('n'): dest = 'NORTH'
+            elif direction.startswith('s'): dest = 'SOUTH'
+            elif direction.startswith('e'): dest = 'EAST'
+            elif direction.startswith('w'): dest = 'WEST'
             
+            if masterPlan[self.location][dest] == 'Wall': printYellow('\n    You bump into a wall.')
+            elif masterPlan[self.location][dest] == 'Outside': 
+                printYellow('\n    You turn to the door leading back outside. Want to leave?')
+                leave = input().lower()
+                if leave.startswith('y'): player.in_house,move_chosen = 0,1
+            elif masterPlan[self.location][dest] == 'Railing': 
+                printYellow('\n    The railings prevent you from falling off the gallery.')     
+            elif masterPlan[self.location][dest] == 'Safe':
+                if self.number_of_keys < 4:
+                     printYellow('''
+    You are missing the necessary keys and are not able to open all of the locks. 
+    Try to explore more of the house and return back later.
+                                ''')
+                else: 
+                    printYellow('\n    You move ' + dest)
+                    self.location = masterPlan[self.location][dest]
+                    move_chosen = 1
+            else: 
+                printYellow('\n    You move ' + dest)
+                self.location = masterPlan[self.location][dest]
+                move_chosen = 1
+    
+    def explores(self):
+        masterPlan[self.location]['VARIABLE'].isEntered()
+        masterPlan[self.location]['VARIABLE'].isExplored()
+            
+    def entersLocation(self):
+        pass
+                          
     def checksStats(self):
         printGreen('Your PST reads:')
         printGreen('Health: ' + str(player.HP) +'/'+ str(player.maxHP) + ' | Heart BPM: ' + str(random.randint(120,180)) + '| Condition: ' + player.condition)
-    
+        printGreen('Revolver pistol bullets: ' + str(player.bullets) + ' | Shotgun shells: ' + str(player.shells))
+
     def firesShotgun(self):
         player.shells-=1
-        backpack.contents.remove('Shotgun shell')
-        backpack.add('Spent shell')
-    
+            
     def firesPistol(self):
         player.bullets -= 1
+
+key_types = ['Brass key', 'Silver key', 'Copper key', 'Iron key']
+
 class Container:
 #container can be filled with items, trapped, hiding a key and looted by player
     def __init__(self,name):
@@ -213,13 +267,13 @@ class Container:
             printUnder('\n' + self.name + ' contains:\n')
             for item in self.contents:
                 if 'key' in item:
-                    print(colored(item, 'yellow'))
+                    print(colored('  ' + item, 'yellow'))
                 elif 'Bandage' in item or 'Hardtack' in item or 'Antidote' in item:
-                    print(colored(item, 'blue'))
+                    print(colored('  ' + item, 'blue'))
                 elif 'Flashbang' in item or 'Shotgun shell' in item or 'Bullet' in item or 'vial' in item:
-                    print(colored(item, 'red'))
+                    print(colored('  ' + item, 'red'))
                 else:
-                    print(item)
+                    print('  ' + item)
         else:
             print(self.name,'is empty.')
         
@@ -243,13 +297,13 @@ class Container:
                                random.randrange(10,15), traps[random.choice(list(traps.keys()))])
             if not player.alive:
                 player.in_room, player.in_house = 0,0
-                                  
+
     def hidesKey(self):
-        key_types = ['Brass key', 'Silver key', 'Copper key', 'Iron key']
         if random.randrange(1,100) < 30 and len(key_types)!=0:
             type_of_key = random.choice(key_types)
             self.contents.append(type_of_key)
             key_types.remove(type_of_key)
+
             
 class Location:
 #locations are created with empty self.containers
@@ -261,32 +315,52 @@ class Location:
         self.container2 = ''
         self.container3 = ''
         self.container4 = ''
-        self.description = ''
+        self.description = masterPlan[self.name]['DESCRIPTION']
         self.containers = []
         self.conts_abb = []
         self.conts_list = []
+        self.solved = 0
 
     def __str__(self):
         return self.name
 
     def isEntered(self):
+    #displays the name of the room
+    #checks if player meets conditions for interactions in certain rooms    
         player.in_room = 1
+        printYellow('\n                               ##' + len(self.name)*'#' + '##')
+        printYellow('                               # ' + self.name + ' #')
+        printYellow('                               ##' + len(self.name)*'#' + '##\n')
         printYellow(self.description)
-        
+        if self.name == 'Master bedroom' and self.solved == 0:
+            if 'Severed head of lady Durst' in backpack.contents and 'Remains of Catherine Durst' in backpack.contents:
+                self.solved = 1
+                printYellow('''
+
+    You place the remains of lady Durst beside the dead man and position 
+    her head on the pillow. A deep sigh penetrates the whole house and 
+    you can almost hear a happy couple laughing together. Suddenly, the 
+    space around you seems a little less grim.
+                            ''')
+            else:
+                printYellow('\n    It seems you are missing a crucial item here.')
+
     def hasEnemy(self):    
         creatures = ['Groggy ghost','Blob of goo','Ghoul','Poltergeist',
                      'Ghastly pirate','Sad vampire','Lidless eye','Moaning monster',
                      'Chucking woodchuck','Batswarm','Striga','Besny havko',
-                     'Creepy doll','Axe murderer','Norman Bates','Starving servant'
+                     'Creepy doll','Axe murderer','Norman Bates','Starving servant',
+                     'Desperate tester'
                     ]
         monster = Entity(random.choice(creatures),18,10)
-        printYellow('    After entering the ' + self.name + ', you are attacked by a '+ monster.name +'.')
-        fighting = 1
+
+        printYellow('\n    After entering the ' + self.name.lower() + ', you are attacked by a '+ monster.name +'.')
+        player.fighting = 1
         player.choosesWeapon()
-        return monster,fighting
-    
+        return monster 
+            
     def whatInRoom(self,item_dic):   
-    # argument is a disctionary of self.containers and their items - up to 4 self.containers and no limit on number of items
+    # argument is a disctionary of containers and their items - up to 4 containers and no limit on number of items
     # {'CONTAINER':['ITEM1','ITEM2','ITEM3',...]}
     # keys in item_dic should not start with the same letter or letter B,R,E    
         
@@ -397,143 +471,444 @@ class Location:
                     if player.HP <= 0:
                         print (' * ' + self.name + ', you succumb to the toxic substance coursing in your veins. *')
                         player.alive = False
-                        player.in_room, player.in_house = 0,0
+                        player.in_house = 0
             if room_choice == 'e':
-                player.in_room, player.in_house, player.wants_end = 0,0,1
+                player.in_room, player.in_house = 0,0
                 printYellow('    Smart. You left the house. Fresh air caresses your face once again.')       
+                
+#COMBAT IS DEFINED HERE
+#player.fighting is set to '1' in Location.hasEnemy()
+#combat is looping while player or enemy is alive, then .fighting is set to '0'
 
-#ROUND OF COMBAT IS DEFINED HERE
-#in game is looping while player or enemy is alive
-
-def combat(player,monster,fighting):
-	#if player chose shotgun or pistol, checks for ammo, lets him choose again
-    if player.weapon == 'Shotgun' and player.shells == 0:
-        printRed('You spent all of your shells. Need to quickly swap weapons.')
-        player.choosesWeapon()
-    if player.weapon == 'Revolver pistol' and player.bullets == 0:
-        printRed('You spent all of your bullets. Quickly swapping weapons.')
-        player.choosesWeapon()
-    #every round of combat starts with initiative
-    if int(player.rollsInitiative()) > int(monster.rollsInitiative()):
-        print ('\nYou react faster.')
-        ###if player wins initiative, lets him choose to fight or check inventory and use item
-        if input('\nFight or Use item?').lower().startswith('f'):
-            monster.isAttacked(13,random.randint(weapon_arsenal[player.weapon][0],weapon_arsenal[player.weapon][1]))
-            if player.weapon == 'Shotgun': player.firesShotgun()
-            elif player.weapon== 'Revolver pistol': player.firesPistol()
-            if not monster.alive:
-                fighting = 0
+def combat(player,monster):
+    while player.fighting:
+        #if player chose shotgun or pistol, checks for ammo, lets him choose again
+        if player.weapon == 'Shotgun' and player.shells == 0:
+            printRed('You spent all of your shells. Need to quickly swap weapons.')
+            player.choosesWeapon()
+        if player.weapon == 'Revolver pistol' and player.bullets == 0:
+            printRed('You spent all of your bullets. Quickly swapping weapons.')
+            player.choosesWeapon()
+        #every round of combat starts with initiative
+        if int(player.rollsInitiative()) > int(monster.rollsInitiative()):
+            print ('\nYou react faster.')
+            ###if player wins initiative, lets him choose to fight or check inventory and use item
+            if input('\nFight or Use item?').lower().startswith('f'):
+                monster.isAttacked(13,random.randint(weapon_arsenal[player.weapon][0],weapon_arsenal[player.weapon][1]))
+                if player.weapon == 'Shotgun': player.firesShotgun()
+                elif player.weapon== 'Revolver pistol': player.firesPistol()
+                if not monster.alive:
+                    player.fighting = 0
+                else:
+                    player.isAttacked(monster.name,random.randint(5,15),random.randint(2,10))
+                    if not player.alive:
+                        player.fighting, player.in_house = 0,0    
             else:
-                player.isAttacked(monster.name,random.randint(5,15),random.randint(2,10))
-                if not player.alive:
-                    fighting = 0    
+                player.checksUsables()
+                if player.has_usables:
+                    player.usesItem()
+                if monster.stunned:
+                    monster.isAttacked(11,random.randint(weapon_arsenal[player.weapon][0],weapon_arsenal[player.weapon][1]))
+                    monster.stunned = 0
+                    if player.weapon == 'Shotgun': player.firesShotgun()
+                    elif player.weapon == 'Revolver pistol': player.firesPistol()
+                    if not monster.alive:
+                        player.fighting = 0
+                else:
+                    player.isAttacked(monster.name,random.randint(5,15),random.randint(2,10))
+                    if not player.alive:
+                        player.fighting, player.in_house = 0,0
         else:
-            player.checksUsables()
-            if player.has_usables:
-                player.usesItem()
-            if monster.stunned:
+            print ('\n' + monster.name + ' is too quick for you.')
+            player.isAttacked(monster.name,random.randint(5,15),random.randint(2,10))
+            if not player.alive:
+                player.fighting, player.in_house = 0,0
+            else:
                 monster.isAttacked(11,random.randint(weapon_arsenal[player.weapon][0],weapon_arsenal[player.weapon][1]))
                 if player.weapon == 'Shotgun': player.firesShotgun()
                 elif player.weapon == 'Revolver pistol': player.firesPistol()
                 if not monster.alive:
-                    fighting = 0
-            else:
-                player.isAttacked(monster.name,random.randint(5,15),random.randint(2,10))
-                if not player.alive:
-                    fighting = 0
-    else:
-        print ('\n' + monster.name + ' is too quick for you.')
-        player.isAttacked(monster.name,random.randint(5,15),random.randint(2,10))
-        if not player.alive:
-            fighting = 0
-        else:
-            monster.isAttacked(11,random.randint(weapon_arsenal[player.weapon][0],weapon_arsenal[player.weapon][1]))
-            if player.weapon == 'Shotgun': player.firesShotgun()
-            elif player.weapon == 'Revolver pistol': player.firesPistol()
-            if not monster.alive:
-                fighting = 0
-    return player,monster,fighting
-                         
-#LOCATIONS ARE DEFINED HERE
+                    player.fighting = 0
+    return player, monster    
+
+masterPlan = {
+    'Foyer': {
+        'VARIABLE': '',
+        'POSITION': 'house.firstFloor[6][3]',   
+        'DESCRIPTION': '''
+    You enter the foyer and immediatly realize you are definitely 
+    the first guest to do so after very many years. Dust covers 
+    every nook and cranny, the floral-patterned drapes are long gone, 
+    succeeded by mere strips of moth-eaten cloth ominously moving 
+    in the cold breeze you let in through the front door. 
+    The smell of mildew attacks your nostrils. 
+    ''',
+        'NORTH': 'Grand hall',
+        'SOUTH': 'Outside',
+        'EAST': 'Wall',
+        'WEST': 'Wall'
+        
+     }, 
+    'Grand hall':{
+        'VARIABLE': '',
+        'POSITION': 'house.firstFloor[5][3]',
+        'DESCRIPTION': '''
+    You find yourself in a huge open space. The floor is marble, the walls 
+    covered in wooden mosaic tiles. A wide gallery runs around the hall 
+    on the second floor and a majestic chandelier hangs above your head.
+    However, the lightbulbs are long gone and shadows reign all around.
+    ''',
+        'NORTH': 'Short hallway',
+        'SOUTH': 'Foyer',
+        'EAST': 'Wall',
+        'WEST': 'Drawing room'    
+    },
+    'Drawing room':{
+        'VARIABLE': '',
+        'POSITION': 'house.firstFloor[5][2]',
+        'DESCRIPTION': '''
+    This formally decorated place was undoubtedly used for greeting the guests
+    of the house. A huge sofa and two massive armchairs surround a coffee table.
+    A huge brown bear skin rug faces an open fireplace. To your surprise, 
+    the room feels really cozy.  
+    ''',
+        'NORTH': 'Wall',
+        'SOUTH': 'Wall',
+        'EAST': 'Grand hall',
+        'WEST': 'Wall'    
+    },
+    'Short hallway':{
+        'VARIABLE': '',
+        'POSITION': 'house.firstFloor[4][3]',
+        'DESCRIPTION': '''
+    The decor of the space around you tells a tale of a once proud family.
+    Several framed photographs hang on the walls, each depicting a person
+    of high status. However, time has manifested itself on the pictures
+    and the faces looking back at you are downright ghastly. 
+    ''',
+        'NORTH': 'Kitchen',
+        'SOUTH': 'Grand hall',
+        'EAST': 'Wall',
+        'WEST': 'Wall'    
+    },
+    'Kitchen':{
+        'VARIABLE': '',
+        'POSITION': 'house.firstFloor[3][3]',
+        'DESCRIPTION': '''
+    The lady of this house loved cooking. This fact is made known by a myriad
+    of pans, pots and tools hanging all around the spacious kitchen. However, 
+    rat droppings decorate most of the working surfaces now and you smell
+    a foul stench of decomposing ingredients.
+    ''',
+        'NORTH': 'Long hallway',
+        'SOUTH': 'Short hallway',
+        'EAST': 'Wall',
+        'WEST': 'Wall'    
+    },
+    'Long hallway':{
+        'VARIABLE': '',
+        'POSITION': 'house.firstFloor[2][3]',
+        'DESCRIPTION': '''
+    Walking along a carpeted hallway you notice a secret compartment behind a rotten wallpaper.
+    At the end of the hallway you find two doors. Soft growling can be heard from behind 
+    the one on the left. This door seem to be reinforced with metal sheets. The door on 
+    the right is covered in dark burgundy spots of dried blood.
+    ''',
+        'NORTH': 'Wall',
+        'SOUTH': 'Kitchen',
+        'EAST': 'Stairs',
+        'WEST': 'Storage room'    
+    },
+    'Stairs':{
+        'VARIABLE': '',
+        'POSITION': 'house.firstFloor[2][4]',
+        'DESCRIPTION': '''
+    The stairs are in a poor condition. Watch your step.
+    ''',
+        'NORTH': 'Wall',
+        'SOUTH': 'Moldy hallway',
+        'EAST': 'Wall',
+        'WEST': 'Long hallway'    
+    },
+    'Storage room':{
+        'VARIABLE': '',
+        'POSITION': 'house.firstFloor[2][2]',
+        'DESCRIPTION': '''
+    You open the door to a small storage room and find yourself 
+    facing a caged animal. It looks like a huge wolf with open wounds 
+    on various parts of its body. 
+    ''',
+        'NORTH': 'Wall',
+        'SOUTH': 'Wall',
+        'EAST': 'Long hallway',
+        'WEST': 'Wall'  
+    },
+    'Moldy hallway':{
+        'VARIABLE': '',
+        'POSITION': 'house.secondFloor[3][4]',
+        'DESCRIPTION': '''
+    The roof is leaking somewhere above this hallway. The walls are covered in thick
+    mold and the air is filled with spores. 
+    ''',
+        'NORTH': 'Stairs',
+        'SOUTH': 'Gallery NE',
+        'EAST': 'Wall',
+        'WEST': 'Wall'    
+    },
+    'Gallery NE':{
+        'VARIABLE': '',
+        'POSITION': 'house.secondFloor[4][4]',
+        'DESCRIPTION': '''
+    The gallery runs in a circle above the grand hall. The space around
+    you is dominated by thick spiderwebs. 
+    ''',
+        'NORTH': 'Moldy hallway',
+        'SOUTH': 'Gallery E',
+        'EAST': 'Wall',
+        'WEST': 'Gallery N'    
+    },
+    'Gallery E':{
+        'VARIABLE': '',
+        'POSITION': 'house.secondFloor[5][4]',
+        'DESCRIPTION': '''
+    The gallery overlooks the grand hall. The space around you is dominated by thick spiderwebs. 
+    ''',
+        'NORTH': 'Gallery NE',
+        'SOUTH': 'Gallery SE',
+        'EAST': 'Study',
+        'WEST': 'Railing'    
+    },
+    'Gallery SE':{
+        'VARIABLE': '',
+        'POSITION': 'house.secondFloor[6][4]',
+        'DESCRIPTION': '''
+    The gallery overlooks the grand hall. The space around you is dominated by thick spiderwebs. 
+    ''',
+        'NORTH': 'Gallery E',
+        'SOUTH': 'Wall',
+        'EAST': 'Wall',
+        'WEST': 'Gallery S'    
+    },
+    'Gallery S':{
+        'VARIABLE': '',
+        'POSITION': 'house.secondFloor[6][3]',
+        'DESCRIPTION': '''
+    This section of the gallery has stained-glass windows looking out on the front yard. 
+    You see two children standing there, looking at you silently. You blink and they are gone. 
+    ''',
+        'NORTH': 'Railing',
+        'SOUTH': 'Wall',
+        'EAST': 'Gallery SE',
+        'WEST': 'Gallery SW'    
+    },
+    'Gallery SW':{
+        'VARIABLE': '',
+        'POSITION': 'house.secondFloor[6][2]',
+        'DESCRIPTION': '''
+    The west side of the gallery seems to be in a particularly bad shape. Almost looks like
+    somebody destroyed the furniture with an axe, crushed the walls with a sledgehammer.    
+    ''',
+        'NORTH': 'Gallery W',
+        'SOUTH': 'Wall',
+        'EAST': 'Gallery S',
+        'WEST': 'Wall'    
+    },
+    'Gallery W':{
+        'VARIABLE': '',
+        'POSITION': 'house.secondFloor[5][2]',
+        'DESCRIPTION': '''
+    This section of the gallery is littered with rubble. 
+    ''',
+        'NORTH': 'Gallery NW',
+        'SOUTH': 'Gallery SW',
+        'EAST': 'Railing',
+        'WEST': 'Master bedroom'    
+    },
+    'Master bedroom':{
+        'VARIABLE': '',
+        'POSITION': 'house.secondFloor[5][1]',
+        'DESCRIPTION': '''
+    The master bedroom is full of decadent luxury. Altough everything is covered 
+    under a thick layer of dust, the space resembles a king's suite. A person is
+    lying in the huge bed. At closer inspection you realize it is in fact a well 
+    preserved body of an older gentleman with two coins placed on his closed eyes.  
+    ''',
+        'NORTH': 'Wall',
+        'SOUTH': 'Wall',
+        'EAST': 'Gallery W',
+        'WEST': 'Wall'    
+    },
+    'Gallery NW':{
+        'VARIABLE': '',
+        'POSITION': 'house.secondFloor[4][2]',
+        'DESCRIPTION': '''
+    This section of the gallery is littered with rubble. 
+    ''',
+        'NORTH': 'Wall',
+        'SOUTH': 'Gallery W',
+        'EAST': 'Gallery N',
+        'WEST': 'Wall'    
+    },
+    'Gallery N':{
+        'VARIABLE': '',
+        'POSITION': 'house.secondFloor[4][3]',
+        'DESCRIPTION': '''
+    This section of the gallery is littered by rubble. 
+    ''',
+        'NORTH': 'Wall',
+        'SOUTH': 'Railing',
+        'EAST': 'Gallery NE',
+        'WEST': 'Gallery NW'    
+    },
+    'Study':{
+        'VARIABLE': '',
+        'POSITION': 'house.secondFloor[5][5]',
+        'DESCRIPTION': '''
+    The Study greets you with a smell of old parchment and cinnamon. Shelves full 
+    of leather-bound books line the walls, the massive oaken table is covered 
+    with dripped candle wax. You walk across the study on a thick red carpet.
+    ''',
+        'NORTH': 'Wall',
+        'SOUTH': 'Wall',
+        'EAST': 'Vault',
+        'WEST': 'Gallery E'    
+    },
+    'Vault':{
+        'VARIABLE': '',
+        'POSITION': 'house.secondFloor[5][6]',
+        'DESCRIPTION': '''
+    You enter a small room dominated by magnificient steel doors in the north wall. 
+    This has to be the vault. You see four keyholes before you.
+    ''',
+        'NORTH': 'Safe',
+        'SOUTH': 'Wall',
+        'EAST': 'Wall',
+        'WEST': 'Study'    
+    },
+    'Safe':{
+        'VARIABLE': '',
+        'POSITION': 'house.secondFloor[5][6]',
+        'DESCRIPTION': '''
+    You open all the locks and enter. The safe looks really impressive. Two display cases
+    stand at the east and the west wall, you see a huge treasure chest and something 
+    resembling a coffin in the center of the room.
+    ''',
+        'NORTH': 'Wall',
+        'SOUTH': 'Vault',
+        'EAST': 'Wall',
+        'WEST': 'Wall'    
+    }
+}
+
+
+#LOCATIONS ARE CREATED AND FILLED WITH CONTAINERS HERE
+#container names should not start with the same letter or letter B,R,E
 
 foyer = Location('Foyer')
-foyer.description = '''
-    You enter the Foyer and immediatly realize you are definitely the first guest 
-    to do so after very many years. Dust covers every nook and cranny, 
-    the floral-patterned drapes are long gone, succeeded by strips 
-    of moth-eaten cloth ominously moving in the cold breeze 
-    you let in through the front door. 
-    The smell of mildew attacks your nostrils. 
-    '''
+masterPlan['Foyer']['VARIABLE'] = foyer
 foyer.whatInRoom({'Painting of lady and lord Durst':['Bleached letter'],
                 'Wardrobe':['Bandage','Dusty duster']
-               })
+                })
 grandHall = Location('Grand hall')
-grandHall.description = '''
-    You find yourself in a huge open space. The floor is marble, the walls covered in wooden mosaic tiles.
-    A wide gallery runs around the hall on the second floor and a majestic chandelier hangs above your head.
-    However, the lightbulbs are long gone and shadows reign all around.
-    '''
+masterPlan['Grand hall']['VARIABLE'] = grandHall
 grandHall.whatInRoom({'Weapon cabinet':['Flashbang','Rusty nail','Shotgun shell'],
                 'Iron lockbox':['Bag of coins','Polished emerald'],
                 'Antique vase':['Dried tulips','Wasp nest']
-               })
+                })
+drawingRoom = Location('Drawing room')
+masterPlan['Drawing room']['VARIABLE'] = drawingRoom
+drawingRoom.whatInRoom({'Porcelain teapot':['Dead cockroach'],
+                'Cigar box':['Soaked cigar','Silver lighter'],
+                })
+shortHallway = Location('Short hallway')
+masterPlan['Short hallway']['VARIABLE'] = shortHallway
+shortHallway.whatInRoom({'Ornate picture frame':['Photograph of Benjamin Durst'],
+                        })
 kitchen = Location('Kitchen')
-kitchen.description = '    You enter the Kitchen and smell stew cooking. And something else, too. Is it burning hair?'
+masterPlan['Kitchen']['VARIABLE'] = kitchen
 kitchen.whatInRoom({'Shabby cupboard':['Bandage','Worm-ridden bag of flour'],
                 'Wooden box':['Sack of turnips','Bunch of carrots'],
                 'Kitchen counter':['Severed head of lady Durst']
-               })
+                })
 longHallway = Location('Long hallway')
-longHallway.descritpion = '''
-    Walking along a carpeted hallway you notice a secret compartment behind a rotten wallpaper.
-    '''
+masterPlan['Long hallway']['VARIABLE'] = longHallway
 longHallway.whatInRoom({'Painting of a landscape':['"Merry marshes" by Catherine Durst: oil on canvas'],
                 'Secret stash':['Huge ruby','Bloody ringfinger','Bullet'],
                 'First aid lockbox':['Bandage','Bandage','Antidote']
-               })
-gallery = Location('Gallery')
-gallery.description ='''
-
-    '''
-gallery.whatInRoom({'Huge cocoon':['Slimy eggsack','Half-digested cat'],
+                })
+storageRoom = Location('Storage room')
+masterPlan['Storage room']['VARIABLE'] = storageRoom
+storageRoom.whatInRoom({'Old backpack':['Shotgun shell','Antidote','Ancient coin',
+                'Hardtack','Hardtack'],
+                })
+stairs = Location('Stairs')
+masterPlan['Stairs']['VARIABLE'] = stairs
+stairs.whatInRoom({
+                })
+moldyHallway = Location('Moldy hallway')
+masterPlan['Moldy hallway']['VARIABLE'] = moldyHallway
+moldyHallway.whatInRoom({
+                        })
+galleryNE = Location('Gallery NE')
+masterPlan['Gallery NE']['VARIABLE'] = galleryNE
+galleryNE.whatInRoom({'Huge cocoon':['Slimy eggsack','Half-digested cat'],
                 'Small cocoon':['Black sludge'],
                 'Web-covered display case':['Shotgun shell','Ceremonial dagger','Tribal leather bracelet'],
                 'Loose brick':['Dead rat']
                 })
+galleryE = Location('Gallery E')
+masterPlan['Gallery E']['VARIABLE'] = galleryE
+galleryE.whatInRoom({'Small cocoon':['Spiderling']
+                    })
+gallerySE = Location('Gallery SE')
+masterPlan['Gallery SE']['VARIABLE'] = gallerySE
+gallerySE.whatInRoom({
+                    })
+galleryS = Location('Gallery S')
+masterPlan['Gallery S']['VARIABLE'] = galleryS
+galleryS.whatInRoom({'Web-covered shoe box':['Brown teddy bear']
+                    })
+gallerySW = Location('Gallery SW')
+masterPlan['Gallery SW']['VARIABLE'] = gallerySW
+gallerySW.whatInRoom({'Destroyed display cabinet':['Golden necklace']
+                    })
+galleryW = Location('Gallery W')
+masterPlan['Gallery W']['VARIABLE'] = galleryW
+galleryW.whatInRoom({
+                    })
+galleryNW = Location('Gallery NW')
+masterPlan['Gallery NW']['VARIABLE'] = galleryNW
+galleryNW.whatInRoom({
+                    })
+galleryN = Location('Gallery N')
+masterPlan['Gallery N']['VARIABLE'] = galleryN
+galleryN.whatInRoom({'Discarded holster':['Bandage','Shotgun shell']
+                    })
+masterBedroom = Location('Master bedroom')
+masterPlan['Master bedroom']['VARIABLE'] = masterBedroom
+masterBedroom.whatInRoom({
+                        })
 study = Location('Study')
-study.description ='''
-    The Study greets you with a smell of old parchment and cinnamon. Shelves full of leather-bound books 
-    line the walls, the massive oaken table is covered with dripped candle wax. You walk across the Study
-    on a thick red carpet.
-    '''
+masterPlan['Study']['VARIABLE'] = study
 study.whatInRoom({'Painting of a city panorama':['"Smothering smog" by Catherine Durst: oil on canvas'],
                 'Iron lockbox':['Shotgun shell','Bullet','Bullet','Steel arrowhead'],
                 'Shelves':['"The king in yellow"','"Victorian handbook of poisons"']
                 }) 
 vault = Location('Vault')
-vault.description = '''
-    You enter a large room dominated by magnificient steel doors. This has to be the vault. You see four 
-    keyholes before you.
-    '''
+masterPlan['Vault']['VARIABLE'] = vault
 vault.whatInRoom({'Old pouch':['Strange rune']
                 }) 
 safe = Location('Safe')
-safe.description = '    You enter the safe.'
+masterPlan['Safe']['VARIABLE'] = safe
 safe.whatInRoom({'Glass display case':['Strange clockwork device'],
-                            'Ornate display case':['Jade statue'],
-                            'Treasure chest':['Pile of gold coins','Assortment of precious stones'],
-                            'Stone coffin':['Remains of Catherine Durst','Blood-soaked handkerchief']
-                           }) 
-basement = Location('Basement')
-basement.description = '''
-    The basement is soaked in darkness. You can make out shapes, but can not discern what surrounds you.
-    '''
+                'Ornate display case':['Jade statue'],
+                'Treasure chest':['Pile of gold coins','Assortment of precious stones'],
+                'Stone coffin':['Remains of Catherine Durst','Blood-soaked handkerchief']
+                }) 
 
-
-
-
-
+#LOCATIONS ARE DEFINED HERE
+#nested dictionary contains name, position on map, description printed when Location.isEntered() 
+#and possible exits for Entity.moves()
 
 
 #GAMEPLAY STARS HERE
@@ -547,8 +922,8 @@ backpack.add('PST: Personal Statistics Tracker')
 printBold('Barry the Butler says: "' + player.name + ', the house holds many treasures."')
 printBold('''
 Barry the Butler says: "To navigate the premises and carry out actions, just type the capitalized letters.
-                        Notice that not all items are usable - when inspecting your inventory, 
-                        usable items will be highlighted."''')
+                        You can choose directions by typing N, S, E or W. Notice that not all items 
+                        are usable - when inspecting your inventory, usable items will be highlighted."''')
 
 printBold('''
 Barry the Butler says: "And if you`re looking for the vault, be warned - you need to collect 4 keys.'
@@ -559,209 +934,15 @@ weapon_arsenal = {'Fists':[1,6],
                   'Axe':[4,10],
                   'Revolver pistol':[10,16],
                   'Shotgun':[18,20]}
-while player.in_house and player.alive:
-    foyer.isEntered()
-    foyer.isExplored()
-    if player.wants_end: break
-    
-    grandHall.isEntered()
-    monster, fighting = grandHall.hasEnemy() 
-    while fighting:
-        player,monster,fighting = combat(player,monster,fighting)
-    if not player.alive: break
-    grandHall.isExplored()
-    if player.wants_end: break
-    
-    kitchen.isEntered()
-    monster,fighting = kitchen.hasEnemy() 
-    while fighting:
-        player,monster,fighting = combat(player,monster,fighting)
-    if not player.alive: break  
-    kitchen.isExplored()
-    if player.wants_end: break
-    
-    longHallway.isEntered()
-    longHallway.isExplored()
-    if player.wants_end: break
-    
-    in_hallway = 1
-    printYellow('''
-    At the end of the hallway you find two doors. 
-    Soft growling can be heard from behind the one on the Left. 
-    This door seem to be reinforced with metal sheets. 
-    The door on the Right is covered in dark burgundy Spots.  
-    ''')
-    while in_hallway:
-        hallway_choice = input().lower()
-        while hallway_choice == '' or hallway_choice[0] not in ['l','r','s']:
-            hallway_choice = input(' * The growling intensifies. Something senses your arrival. *').lower()
-        if hallway_choice[0] == 'l':
-            printYellow('''
-    You open the door and find yourself facing a caged animal. 
-    It looks like a huge wolf with open wounds on various parts of its body. 
-    You could get Closer or Back up to a safe distance.
-                ''')                
-            what_now = input().lower()
-            while what_now == '' or what_now[0] not in ['c','b']:
-                what_now = input(' * The monstrous dog watches you with curious eyes. *').lower()
-            if what_now[0] == 'b':
-                printYellow('    You are back in the hallway.')
-            elif what_now[0] == 'c':
-                monster = Entity('Hellhound',42,12)
-                print('\n * The ' + monster.name + ' was obviously wainting in ambush. It tears open its cage and lunges at you. * ')
-                fighting = 1
-                player.choosesWeapon()
-                while fighting:
-                    player,monster,fighting = combat(player,monster,fighting)
-                if not player.alive:
-                    in_hallway = 0
-                    player.in_house,player.wants_end = 0,1
-                    break
-                else:
-                    printYellow('''
-    The beast lies in a pool of its own blood. In the far corner of the cage
-    you notice a ragged backpack. Must've belonged to a previous explorer.
-                        ''')
-                    oldBackpack = Container('Old backpack')
-                    oldBackpack.hidesKey()
-                    oldBackpack.add('Bandage')
-                    oldBackpack.add('Shotgun shell')
-                    oldBackpack.add('Hardtack')
-                    oldBackpack.contains()
-                    player.loots(oldBackpack.contents)
-                    oldBackpack.is_looted()
-                    printYellow('''
-    You leave the defeated foe behind, return to the hallway and enter the remaining door.
-    A long staircase leads upstairs. Exhausted from the fight you start climbing. 
-                    ''')
-                    in_hallway = 0
-        elif hallway_choice[0] == 's':
-            printYellow('    After closer inspection you identify the spots as age-old dried blood.')
-        elif hallway_choice[0] == 'r':
-            printYellow('''
-    You found stairs leading up. The beastial sounds behind your back are getting louder
-    every moment. You don't have time to think and rush upstairs.
-                        ''')
-            in_hallway = 0
-    if player.wants_end: break        
-  
-    printYellow('''
-    After you catch your breath you realize you arrived to the gallery
-    overlooking the grand hall. The space around you is dominated by thick spiderwebs. 
-                ''')
-    on_gallery = 1
-    gallery_items = ['Twitching cocoon', 'Discarded flashbang']
-    gallery_choice_potential = ['t','d','r']
-    while on_gallery:
-        printUnder('\nThe following objects catch your eye:\n')
-        for item in gallery_items:
-            if 'flashbang' in item: print(colored(item, 'red'))
-            else: print(item)    
-        print('Alternatively, you can get Ready and go on exploring this floor.')
-        gallery_choice = input().lower()
-        while gallery_choice == '' or gallery_choice not in gallery_choice_potential:
-            gallery_choice = input(' * The human-sized cocoon continues twitching. * ').lower()
-        if gallery_choice.startswith('d'):
-            backpack.add('Flashbang')
-            printYellow("    Someone tried and failed to use this flashbang. It will serve you well.")
-            gallery_choice_potential.remove('d')
-            gallery_items.remove('Discarded flashbang')
-        elif gallery_choice.startswith('t'):
-            printYellow('''
-            You approach the strange cocoon. The closer you get the more it resembles
-            a human shape. You could swear you hear a soft moaning. A plea for help?
-            You hold your breath and touch it. It burst under a sudden pressure from within
-            and sprays you with a caustic liquid. A swarm of ferocious spiders 
-            starts crawling up your hand. Disgusting.
-                        ''')
-            player.condition = 'Poisoned'
-            monster = Entity('Spider swarm',20,1)
-            fighting = 1
-            player.choosesWeapon()
-            while fighting:
-                player,monster,fighting = combat(player,monster,fighting)
-            if not player.alive:
-                player.in_house, player.wants_end = 0,1
-                break
-            else:
-                printYellow('''
-    The spiders are gone. For now. However, you don't feel quite well.
-                         ''')
-                break
-        elif gallery_choice.startswith('r'):
-            break
-    gallery.isExplored()
-    if player.wants_end: break
-    
-    printYellow('''
-    Walking along the gallery you catch movement in the corner of your eye. 
-    Want to Investigate or Leave?
-                ''')
-    hallway_choice = input().lower()
-    while hallway_choice == '' or hallway_choice[0] not in ['i','l']:
-        hallway_choice = input(' * The spiderwebs around you are starting to vibrate. *').lower()
-    if hallway_choice[0] == 'i':
-        monster = Entity('Savage spider',14,8)
-        printYellow('\n    An enormous spider moves towards you with lightning speed.')
-        fighting = 1
-        player.choosesWeapon()
-        while fighting:
-            player,monster,fighting = combat(player,monster,fighting)
-        if not player.alive:
-            in_hallway = 0
-            player.in_house, player.wants_end = 0,1
-            break
-        else:
-            printYellow('''
-    The spider's body twitches even after the beast's death. 
-    As you slice open its abdomen, you find one of the ancient keys.                             
-                ''')
-            backpack.add('Ancient key')
-    else:
-        printYellow('    Better safe than sorry. You quicken your pace.')
-    
-    study.isEntered()
-                
-    printYellow('    You are startled by a sudden opening of the study doors. The butler enters.')
-    printBold('''
-Barry the Butler says:"I see you are still alive. The vault awaits behind the next door.
-                       It is dangerous to go alone, take this."
-                            ''')
-    printYellow('    He hands you a small glass vial, chuckles ominously and disappears in a puff of smoke.')
-    backpack.add('Mysterious glass vial')
-    study.isExplored()
-    if player.wants_end: break
-        
-    vault.isEntered()
-    vault.isExplored()
-    if player.number_of_keys == 4:
-        printYellow('''
-        One by one you open all the locks. Gears start to turn inside the walls 
-        and hidden machinery comes alive. The doors start to open slowly.
-                    ''')
-        safe.isEntered
-        safe.isExplored
-        
-        if player.wants_end: break
-        print('''
-    As you loot the safe a terrible feeling fills your mind. It seems your mere presence 
-    awakened something ancient in the bowels of the house. The very foundations of the building 
-    are shaking, the walls are cracking and debris is crashing down all around you. 
-    You look for a possible exit and find a hidden staircase leading down.    
-              ''')
-    else:
-        printYellow('''
-    You are missing the necessary keys and are not able to open all of the locks. 
-    More exploring is necessary. However, it seems your mere presence awakened something 
-    ancient in the bowels of the house. The very foundations of the building are shaking, 
-    the walls are cracking and debris is crashing down all around you. You look for a possible exit
-    and find a hidden staircase leading down.)
-                    ''')
-    basement.isEntered()
 
-#TODO: forced game over here, add more content    
-    print('>>>>The shadows around you coalesce into claws. Fortunately, you spot a small window, squeeze through and escape the house.<<<<')
-    player.in_house = 0
+while player.in_house and player.alive:
+    player.explores()
+    if not player.in_house: break
+    player.moves()
+    if not player.in_house: break
+    if random.randrange(1,100) < 20:
+            monster = masterPlan[player.location]['VARIABLE'].hasEnemy()
+            player,monster = combat(player,monster) 
 
 if not player.in_house:
     if not player.alive:
@@ -772,7 +953,7 @@ if not player.in_house:
             if item == 'PST: Personal Statistics Tracker':
                 continue
             else:
-                print(item)
+                print('  ' + item)
     else:
         print('\n *** Unfortunately, you got out empty-handed. *** ')
 
