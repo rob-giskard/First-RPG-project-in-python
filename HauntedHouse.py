@@ -531,6 +531,11 @@ def combat(player,monster):
                     player.fighting = 0
     return player, monster    
 
+#LOCATIONS ARE DEFINED HERE
+#nested dictionary contains variable name of objects from Location class, position on map,
+#description printed when Location.isEntered() 
+#and possible exits for Entity.moves()
+
 masterPlan = {
     'Foyer': {
         'VARIABLE': '',
@@ -800,7 +805,6 @@ masterPlan = {
     }
 }
 
-
 #LOCATIONS ARE CREATED AND FILLED WITH CONTAINERS HERE
 #container names should not start with the same letter or letter B,R,E
 
@@ -905,11 +909,6 @@ safe.whatInRoom({'Glass display case':['Strange clockwork device'],
                 'Treasure chest':['Pile of gold coins','Assortment of precious stones'],
                 'Stone coffin':['Remains of Catherine Durst','Blood-soaked handkerchief']
                 }) 
-
-#LOCATIONS ARE DEFINED HERE
-#nested dictionary contains name, position on map, description printed when Location.isEntered() 
-#and possible exits for Entity.moves()
-
 
 #GAMEPLAY STARS HERE
 
