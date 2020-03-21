@@ -2,17 +2,17 @@ import random
 import sys
 from termcolor import colored, cprint
 
-def printBold(text):
+def print_bold(text):
     print(colored(text,attrs=['bold']))
-def printUnder(text):
+def print_under(text):
     print(colored(text,attrs=['underline']))
-def printYellow(text):
+def print_yellow(text):
     print(colored(text, 'yellow'))
-def printBoldYellow(text):
+def print_bold_yellow(text):
     print(colored(text, 'yellow', attrs=['bold']))
-def printGreen(text):
+def print_green(text):
     print(colored(text, 'green'))
-def printRed(text):
+def print_red(text):
     print(colored(text, 'red'))
 
 #CLASSES ARE DEFINED HERE
@@ -45,26 +45,26 @@ class Entity:
     def __str__(self):
         return ('This ' + self.name + ' has ' + str(self.HP) + ' HP and '+ str(self.AC) + ' AC.') 
     
-    def rollsInitiative(self):
+    def rolls_initiative(self):
         initiative = random.randint(1,21)
         print (' * ' + self.name + ' rolls for initiative, gets ' + str(initiative) + '. *') 
         return initiative 
         
-    def isAttacked(self,incoming_hit,incoming_damage):
+    def is_attacked(self,incoming_hit,incoming_damage):
         if incoming_hit >= self.AC:
             self.HP -= incoming_damage
             print (' * You hit.',self.name + ' takes ' + str(incoming_damage) + ' damage. * ')
             if self.HP <= 0:
-                printBold (' * ' + self.name + ' is dead. *')
+                print_bold (' * ' + self.name + ' is dead. *')
                 self.alive = False
         else:
             print (' * ' + self.name + ' avoids the attack. *')
     
-    def isStunned(self):
+    def is_stunned(self):
         print (' * ' + self.name + ' is STUNNED! Doesn`t attack this turn. *')
         self.stunned = 1
         
-    def isImmobilized(self):
+    def is_immobilized(self):
         print (self.name + ' is IMMOBILIZED. Can`t chase its opponent.')
         
     def rests(self):
@@ -77,10 +77,10 @@ class Entity:
 
 class Player(Entity):
              
-    def checksInventory(self):
+    def checks_inventory(self):
         backpack.contains()
         if self.number_of_keys >= 4:
-            printYellow('''
+            print_yellow('''
     As you go over your inventory, you realize you have four ancient keys. 
     You should be able to open the rumored vault now. Only one thing remains. 
     You need to find it.
@@ -99,7 +99,7 @@ class Player(Entity):
                     backpack.add(item)
             print ('\n -> Stuff moved to your backpack.')
             
-    def choosesWeapon(self):
+    def chooses_weapon(self):
         print('\nYou have the following weapons at your disposal:')
         for key in weapon_arsenal.keys():
             print('  ' + key)
@@ -113,37 +113,37 @@ class Player(Entity):
             elif weapon_type.startswith('r'):
                 self.weapon = 'Revolver pistol'
                 if self.bullets == 0:
-                    printRed('Your gun is empty.')
+                    print_red('Your gun is empty.')
                     weapon_type = ''    
                 else:
                     self.weapon = 'Revolver pistol'
             elif weapon_type.startswith('s'): 
                 if self.shells == 0: 
-                    printRed("Damn, seems you're out of shotgun shells.")
+                    print_red("Damn, seems you're out of shotgun shells.")
                     weapon_type = ''
                 else:
                     self.weapon = 'Shotgun'
             else:
-                printRed("You don't have that. Using your fists for now.")
+                print_red("You don't have that. Using your fists for now.")
                 self.weapon = 'Fists'
 
-    def isAttacked(self,attacker_name,incoming_hit,incoming_damage):
+    def is_attacked(self,attacker_name,incoming_hit,incoming_damage):
         if incoming_hit >= self.AC:
             self.HP -= incoming_damage
             print('\n * You are hit and take ' + str(incoming_damage) + ' damage. *')
-            printGreen('\n * ' + self.name + ', you have ' + str(self.HP) + ' HP left. *')
+            print_green('\n * ' + self.name + ', you have ' + str(self.HP) + ' HP left. *')
             if self.HP <= 0:
                 print ('\n * ' + self.name + ', you are dead. *')
                 self.alive = False
         else:
             print ('\n * ' + attacker_name + ' attacks but you avoid the strike. *')
     
-    def rollsInitiative(self):
+    def rolls_initiative(self):
         initiative = random.randint(1,21)
         print ('\n * ' + self.name + ' rolls for initiative: ' + str(initiative) + '. *') 
         return initiative 
    
-    def checksUsables(self):
+    def checks_usables(self):
         #compares backpack contents against a list of usable items
         #modifies has_usables class attribute
         usables = ['Bandage','Flashbang','Hardtack','Antidote','Mysterious glass vial']
@@ -151,16 +151,16 @@ class Player(Entity):
             if i in backpack.contents:
                 self.has_usables = 1
         if self.has_usables:        
-            printGreen('\nUsable items:')
+            print_green('\nUsable items:')
             for i in usables:
                 if i in backpack.contents:
                     print ('  ' + i)
         else:
             print('\n * Whoopsie, you are all out of usable items. * \n')
             self.has_usables = 0
-            player.checksStats()
+            player.checks_stats()
     
-    def usesItem(self):
+    def uses_item(self):
         item_to_use = ''
         while item_to_use == '':
             item_to_use = input('\npSelect item to use, check PST or Close the backpack.').lower()
@@ -168,38 +168,38 @@ class Player(Entity):
             self.HP += random.randint(6,12)
             if self.HP > self.maxHP:
                 self.HP = self.maxHP
-            printYellow('    You tend to your wounds and are healed to ' + str(self.HP) + ' HP.')
+            print_yellow('    You tend to your wounds and are healed to ' + str(self.HP) + ' HP.')
             backpack.remove('Bandage')
         elif item_to_use.startswith('f') and 'Flashbang' in backpack.contents:
             if player.fighting:
-                monster.isStunned()
+                monster.is_stunned()
             else:
-                printYellow('\n    The flashbang discharges in your hand leaving you momentarily dazed. Well played.')
+                print_yellow('\n    The flashbang discharges in your hand leaving you momentarily dazed. Well played.')
             backpack.remove('Flashbang')
         elif item_to_use.startswith('h') and 'Hardtack' in backpack.contents:
             self.HP += 2
             if self.HP > self.maxHP:
                 self.HP = self.maxHP
-            printYellow('\n    The hardtack tastes bland but you recover some strength.')
+            print_yellow('\n    The hardtack tastes bland but you recover some strength.')
             backpack.remove('Hardtack')
         elif item_to_use.startswith('a') and 'Antidote' in backpack.contents:
             if self.condition == 'Poisoned':
                 self.condition = 'Stable'
-                printYellow('\n    The antidote is working. You feel better immediately.')
-            else: printYellow('\n    The liquid tastes funny but does nothing.')
+                print_yellow('\n    The antidote is working. You feel better immediately.')
+            else: print_yellow('\n    The liquid tastes funny but does nothing.')
             backpack.remove('Antidote')
         elif item_to_use.startswith('m'):
-            printYellow('\n    You drink the unknown liquid and taste death. Everything fades to black.')
+            print_yellow('\n    You drink the unknown liquid and taste death. Everything fades to black.')
             backpack.remove('Mysterious glass vial')
             player.alive, player.in_house = 0,0
         elif item_to_use.startswith('p'):
-            player.checksStats()
+            player.checks_stats()
         elif item_to_use.startswith('c'):
             pass
         else: 
             print('***Item not usable.***')
     
-    def seeExits(self):
+    def sees_exits(self):
         pass
 
 
@@ -214,44 +214,44 @@ class Player(Entity):
             elif direction.startswith('e'): dest = 'EAST'
             elif direction.startswith('w'): dest = 'WEST'
             
-            if masterPlan[self.location][dest] == 'Wall': printYellow('\n    You bump into a wall.')
+            if masterPlan[self.location][dest] == 'Wall': print_yellow('\n    You bump into a wall.')
             elif masterPlan[self.location][dest] == 'Outside': 
-                printYellow('\n    You turn to the door leading back outside. Want to leave?')
+                print_yellow('\n    You turn to the door leading back outside. Want to leave?')
                 leave = input().lower()
                 if leave.startswith('y'): player.in_house,move_chosen = 0,1
             elif masterPlan[self.location][dest] == 'Railing': 
-                printYellow('\n    The railings prevent you from falling off the gallery.')     
+                print_yellow('\n    The railings prevent you from falling off the gallery.')     
             elif masterPlan[self.location][dest] == 'Safe':
                 if self.number_of_keys < 4:
-                     printYellow('''
+                     print_yellow('''
     You are missing the necessary keys and are not able to open all of the locks. 
     Try to explore more of the house and return back later.
                                 ''')
                 else: 
-                    printYellow('\n    You move ' + dest)
+                    print_yellow('\n    You move ' + dest)
                     self.location = masterPlan[self.location][dest]
                     move_chosen = 1
             else: 
-                printYellow('\n    You move ' + dest)
+                print_yellow('\n    You move ' + dest)
                 self.location = masterPlan[self.location][dest]
                 move_chosen = 1
     
     def explores(self):
-        masterPlan[self.location]['VARIABLE'].isEntered()
-        masterPlan[self.location]['VARIABLE'].isExplored()
+        masterPlan[self.location]['VARIABLE'].is_entered()
+        masterPlan[self.location]['VARIABLE'].is_explored()
             
-    def entersLocation(self):
+    def enters_location(self):
         pass
                           
-    def checksStats(self):
-        printGreen('Your PST reads:')
-        printGreen('Health: ' + str(player.HP) +'/'+ str(player.maxHP) + ' | Heart BPM: ' + str(random.randint(120,180)) + '| Condition: ' + player.condition)
-        printGreen('Revolver pistol bullets: ' + str(player.bullets) + ' | Shotgun shells: ' + str(player.shells))
+    def checks_stats(self):
+        print_green('Your PST reads:')
+        print_green('Health: ' + str(player.HP) +'/'+ str(player.maxHP) + ' | Heart BPM: ' + str(random.randint(120,180)) + '| Condition: ' + player.condition)
+        print_green('Revolver pistol bullets: ' + str(player.bullets) + ' | Shotgun shells: ' + str(player.shells))
 
-    def firesShotgun(self):
+    def fires_shotgun(self):
         player.shells-=1
             
-    def firesPistol(self):
+    def fires_pistol(self):
         player.bullets -= 1
 
 key_types = ['Brass key', 'Silver key', 'Copper key', 'Iron key']
@@ -264,7 +264,7 @@ class Container:
         
     def contains(self):
         if self.contents != []:
-            printUnder('\n' + self.name + ' contains:\n')
+            print_under('\n' + self.name + ' contains:\n')
             for item in self.contents:
                 if 'key' in item:
                     print(colored('  ' + item, 'yellow'))
@@ -288,17 +288,17 @@ class Container:
 
     def is_trapped(self):
         if random.randrange(1,100) < 60:
-            printRed('The '+ self.name + ' is trapped!')
+            print_red('The '+ self.name + ' is trapped!')
             traps = {'Dart trap':4, 'Poison gas':8, 'Explosion':12}
-            #isAttacked(self,attacker_name,incoming_hit,incoming_damage)
+            #is_attacked(self,attacker_name,incoming_hit,incoming_damage)
             #incoming_hit is randrange
             #incoming_dmg is tied to randomly chosen element from dict traps
-            player.isAttacked(random.choice(list(traps.keys())),
+            player.is_attacked(random.choice(list(traps.keys())),
                                random.randrange(10,15), traps[random.choice(list(traps.keys()))])
             if not player.alive:
                 player.in_room, player.in_house = 0,0
 
-    def hidesKey(self):
+    def hides_key(self):
         if random.randrange(1,100) < 30 and len(key_types)!=0:
             type_of_key = random.choice(key_types)
             self.contents.append(type_of_key)
@@ -307,7 +307,7 @@ class Container:
             
 class Location:
 #locations are created with empty self.containers
-#which are filled by whatInRoom()
+#which are filled by what_in_room()
     def __init__(self,name):
         self.name = name
         self.container0 = ''
@@ -324,18 +324,18 @@ class Location:
     def __str__(self):
         return self.name
 
-    def isEntered(self):
+    def is_entered(self):
     #displays the name of the room
     #checks if player meets conditions for interactions in certain rooms    
         player.in_room = 1
-        printYellow('\n                               ##' + len(self.name)*'#' + '##')
-        printYellow('                               # ' + self.name + ' #')
-        printYellow('                               ##' + len(self.name)*'#' + '##\n')
-        printYellow(self.description)
-        if self.name == 'Master bedroom' and self.solved == 0:
+        print_yellow('\n                               ##' + len(self.name)*'#' + '##')
+        print_yellow('                               # ' + self.name + ' #')
+        print_yellow('                               ##' + len(self.name)*'#' + '##\n')
+        print_yellow(self.description)
+        if self.name == 'Master bedroom' and not self.solved:
             if 'Severed head of lady Durst' in backpack.contents and 'Remains of Catherine Durst' in backpack.contents:
                 self.solved = 1
-                printYellow('''
+                print_yellow('''
 
     You place the remains of lady Durst beside the dead man and position 
     her head on the pillow. A deep sigh penetrates the whole house and 
@@ -343,9 +343,32 @@ class Location:
     space around you seems a little less grim.
                             ''')
             else:
-                printYellow('\n    It seems you are missing a crucial item here.')
+                print_yellow('\n    It seems you are missing a crucial item here.')
 
-    def hasEnemy(self):    
+        elif self.name == 'Childrens bedroom' and not self.solved:
+            if 'Photograph of Benjamin Durst' in backpack.contents and 'Brown teddy bear' in backpack.contents:
+                self.solved = 1
+                print_yellow('''
+
+    You place the photograph of Benjamin Durst in one of the empty picture 
+    frames and arrange the brown teddy bear so it sits among the other stuffed 
+    animals on one of the beds. The room is filled with laughter and a half-transparent
+    image of a young boy is standing beside you. He nods at you with joy in his eyes
+    and slowly fades away. Suddenly, several more rays of sunshine find their way into
+    the house.
+                            ''')
+            else:
+                print_yellow('\n    It seems you are missing a crucial item here.')
+        
+        elif self.name == 'Moldy hallway':
+            player.condition = 'Pisoned'
+            print_yellow ('''
+    You start coughing uncontrollably. Better hope you didn't breathe in too many
+    of the microscopic particles swirling around you. Otherwise, your health could
+    be in serious danger.            
+                        ''')
+
+    def has_enemy(self):    
         creatures = ['Groggy ghost','Blob of goo','Ghoul','Poltergeist',
                      'Ghastly pirate','Sad vampire','Lidless eye','Moaning monster',
                      'Chucking woodchuck','Batswarm','Striga','Besny havko',
@@ -354,12 +377,12 @@ class Location:
                     ]
         monster = Entity(random.choice(creatures),18,10)
 
-        printYellow('\n    After entering the ' + self.name.lower() + ', you are attacked by a '+ monster.name +'.')
+        print_yellow('\n    After entering the ' + self.name.lower() + ', you are attacked by a '+ monster.name +'.')
         player.fighting = 1
-        player.choosesWeapon()
+        player.chooses_weapon()
         return monster 
             
-    def whatInRoom(self,item_dic):   
+    def what_in_room(self,item_dic):   
     # argument is a disctionary of containers and their items - up to 4 containers and no limit on number of items
     # {'CONTAINER':['ITEM1','ITEM2','ITEM3',...]}
     # keys in item_dic should not start with the same letter or letter B,R,E    
@@ -368,38 +391,38 @@ class Location:
         self.conts_abb += ['b','r','e']
         try:
             self.container0 = Container(self.containers[0])
-            self.container0.hidesKey()
+            self.container0.hides_key()
             for item in item_dic[self.containers[0]]:
                 self.container0.add(item)        
         except IndexError: pass
         try:
             self.container1 = Container(self.containers[1])
-            self.container1.hidesKey()
+            self.container1.hides_key()
             for item in item_dic[self.containers[1]]:
                 self.container1.add(item)
         except IndexError: pass
         try:
             self.container2 = Container(self.containers[2])
-            self.container2.hidesKey()
+            self.container2.hides_key()
             for item in item_dic[self.containers[2]]:
                 self.container2.add(item)
         except IndexError: pass
         try:
             self.container3 = Container(self.containers[3])
-            self.container3.hidesKey()
+            self.container3.hides_key()
             for item in item_dic[self.containers[3]]:
                 self.container3.add(item)
         except IndexError: pass    
        
-    def isExplored(self):
+    def is_explored(self):
         while player.in_room:
             if len(self.conts_list) != 0:
-                printUnder('\nThe following objects catch your eye:\n')
+                print_under('\nThe following objects catch your eye:\n')
                 for c in self.containers: print(c)
                 print('\nYou can also check your Backpack, push on to another Room or Escape screaming.')
 
             else:
-                printYellow('\n    This room seems empty. Want to rummage through your Backpack or explore other Rooms?')
+                print_yellow('\n    This room seems empty. Want to rummage through your Backpack or explore other Rooms?')
             room_choice = input().lower()
             while room_choice == '' or room_choice[0] not in self.conts_abb:
                 room_choice = input('The surrounding space gives you chills. What do you do?').lower()
@@ -452,8 +475,8 @@ class Location:
                     self.conts_list.remove(self.container3.name)
             except IndexError: pass
             if room_choice[0] == 'b':
-                player.checksInventory()
-                player.checksUsables()
+                player.checks_inventory()
+                player.checks_usables()
                 if player.has_usables:
                     player.usesItem()
             if room_choice[0] == 'r':
@@ -463,10 +486,10 @@ class Location:
                             '\n    You continue exploring.',
                             '\n    Your footsteps echo in the quiet interior.']     
                 room_exit_line = random.choice(room_exit_lines)
-                printYellow(room_exit_line)
+                print_yellow(room_exit_line)
                 player.in_room = 0
                 if player.condition == 'Poisoned':
-                    printBold(colored('\n    The poison takes its toll. You feel your life energy draining.','red'))
+                    print_bold(colored('\n    A toxin coursing through your body takes its toll. You feel your life energy draining.','red'))
                     player.HP -= 3
                     if player.HP <= 0:
                         print (' * ' + self.name + ', you succumb to the toxic substance coursing in your veins. *')
@@ -474,66 +497,66 @@ class Location:
                         player.in_house = 0
             if room_choice == 'e':
                 player.in_room, player.in_house = 0,0
-                printYellow('    Smart. You left the house. Fresh air caresses your face once again.')       
+                print_yellow('    Smart. You left the house. Fresh air caresses your face once again.')       
                 
 #COMBAT IS DEFINED HERE
-#player.fighting is set to '1' in Location.hasEnemy()
+#player.fighting is set to '1' in Location.has_enemy()
 #combat is looping while player or enemy is alive, then .fighting is set to '0'
 
 def combat(player,monster):
     while player.fighting:
         #if player chose shotgun or pistol, checks for ammo, lets him choose again
         if player.weapon == 'Shotgun' and player.shells == 0:
-            printRed('You spent all of your shells. Need to quickly swap weapons.')
-            player.choosesWeapon()
+            print_red('You spent all of your shells. Need to quickly swap weapons.')
+            player.chooses_weapon()
         if player.weapon == 'Revolver pistol' and player.bullets == 0:
-            printRed('You spent all of your bullets. Quickly swapping weapons.')
-            player.choosesWeapon()
+            print_red('You spent all of your bullets. Quickly swapping weapons.')
+            player.chooses_weapon()
         #every round of combat starts with initiative
-        if int(player.rollsInitiative()) > int(monster.rollsInitiative()):
+        if int(player.rolls_initiative()) > int(monster.rolls_initiative()):
             print ('\nYou react faster.')
             ###if player wins initiative, lets him choose to fight or check inventory and use item
             if input('\nFight or Use item?').lower().startswith('f'):
-                monster.isAttacked(13,random.randint(weapon_arsenal[player.weapon][0],weapon_arsenal[player.weapon][1]))
-                if player.weapon == 'Shotgun': player.firesShotgun()
-                elif player.weapon== 'Revolver pistol': player.firesPistol()
+                monster.is_attacked(13,random.randint(weapon_arsenal[player.weapon][0],weapon_arsenal[player.weapon][1]))
+                if player.weapon == 'Shotgun': player.fires_shotgun()
+                elif player.weapon== 'Revolver pistol': player.fires_pistol()
                 if not monster.alive:
                     player.fighting = 0
                 else:
-                    player.isAttacked(monster.name,random.randint(5,15),random.randint(2,10))
+                    player.is_attacked(monster.name,random.randint(5,15),random.randint(2,10))
                     if not player.alive:
                         player.fighting, player.in_house = 0,0    
             else:
-                player.checksUsables()
+                player.checks_usables()
                 if player.has_usables:
                     player.usesItem()
                 if monster.stunned:
-                    monster.isAttacked(11,random.randint(weapon_arsenal[player.weapon][0],weapon_arsenal[player.weapon][1]))
+                    monster.is_attacked(11,random.randint(weapon_arsenal[player.weapon][0],weapon_arsenal[player.weapon][1]))
                     monster.stunned = 0
-                    if player.weapon == 'Shotgun': player.firesShotgun()
-                    elif player.weapon == 'Revolver pistol': player.firesPistol()
+                    if player.weapon == 'Shotgun': player.fires_shotgun()
+                    elif player.weapon == 'Revolver pistol': player.fires_pistol()
                     if not monster.alive:
                         player.fighting = 0
                 else:
-                    player.isAttacked(monster.name,random.randint(5,15),random.randint(2,10))
+                    player.is_attacked(monster.name,random.randint(5,15),random.randint(2,10))
                     if not player.alive:
                         player.fighting, player.in_house = 0,0
         else:
             print ('\n' + monster.name + ' is too quick for you.')
-            player.isAttacked(monster.name,random.randint(5,15),random.randint(2,10))
+            player.is_attacked(monster.name,random.randint(5,15),random.randint(2,10))
             if not player.alive:
                 player.fighting, player.in_house = 0,0
             else:
-                monster.isAttacked(11,random.randint(weapon_arsenal[player.weapon][0],weapon_arsenal[player.weapon][1]))
-                if player.weapon == 'Shotgun': player.firesShotgun()
-                elif player.weapon == 'Revolver pistol': player.firesPistol()
+                monster.is_attacked(11,random.randint(weapon_arsenal[player.weapon][0],weapon_arsenal[player.weapon][1]))
+                if player.weapon == 'Shotgun': player.fires_shotgun()
+                elif player.weapon == 'Revolver pistol': player.fires_pistol()
                 if not monster.alive:
                     player.fighting = 0
     return player, monster    
 
 #LOCATIONS ARE DEFINED HERE
 #nested dictionary contains variable name of objects from Location class, position on map,
-#description printed when Location.isEntered() 
+#description printed when Location.is_entered() 
 #and possible exits for Entity.moves()
 
 masterPlan = {
@@ -552,8 +575,7 @@ masterPlan = {
         'SOUTH': 'Outside',
         'EAST': 'Wall',
         'WEST': 'Wall'
-        
-     }, 
+    }, 
     'Grand hall':{
         'VARIABLE': '',
         'POSITION': 'house.firstFloor[5][3]',
@@ -742,6 +764,20 @@ masterPlan = {
         'SOUTH': 'Wall',
         'EAST': 'Gallery W',
         'WEST': 'Wall'    
+    }, 
+    'Childrens bedroom':{
+        'VARIABLE': '',
+        'POSITION': 'house.secondFloor[3][2]',
+        'DESCRIPTION': '''
+    Two small beds sit in the corners of this room. A small library with fairy-tale
+    books also contains several empty picture frames and a ragged doll is discarded
+    in the middle of the room. You notice smears of dried blood on several places 
+    around you. 
+    ''',
+        'NORTH': 'Wall',
+        'SOUTH': 'Gallery NW',
+        'EAST': 'Wall',
+        'WEST': 'Wall'   
     },
     'Gallery NW':{
         'VARIABLE': '',
@@ -749,7 +785,7 @@ masterPlan = {
         'DESCRIPTION': '''
     This section of the gallery is littered with rubble. 
     ''',
-        'NORTH': 'Wall',
+        'NORTH': 'Childrens bedroom',
         'SOUTH': 'Gallery W',
         'EAST': 'Gallery N',
         'WEST': 'Wall'    
@@ -810,101 +846,106 @@ masterPlan = {
 
 foyer = Location('Foyer')
 masterPlan['Foyer']['VARIABLE'] = foyer
-foyer.whatInRoom({'Painting of lady and lord Durst':['Bleached letter'],
+foyer.what_in_room({'Painting of lady and lord Durst':['Bleached letter'],
                 'Wardrobe':['Bandage','Dusty duster']
                 })
 grandHall = Location('Grand hall')
 masterPlan['Grand hall']['VARIABLE'] = grandHall
-grandHall.whatInRoom({'Weapon cabinet':['Flashbang','Rusty nail','Shotgun shell'],
+grandHall.what_in_room({'Weapon cabinet':['Flashbang','Rusty nail','Shotgun shell'],
                 'Iron lockbox':['Bag of coins','Polished emerald'],
                 'Antique vase':['Dried tulips','Wasp nest']
                 })
 drawingRoom = Location('Drawing room')
 masterPlan['Drawing room']['VARIABLE'] = drawingRoom
-drawingRoom.whatInRoom({'Porcelain teapot':['Dead cockroach'],
+drawingRoom.what_in_room({'Porcelain teapot':['Dead cockroach'],
                 'Cigar box':['Soaked cigar','Silver lighter'],
                 })
 shortHallway = Location('Short hallway')
 masterPlan['Short hallway']['VARIABLE'] = shortHallway
-shortHallway.whatInRoom({'Ornate picture frame':['Photograph of Benjamin Durst'],
+shortHallway.what_in_room({'Ornate picture frame':['Photograph of Benjamin Durst'],
                         })
 kitchen = Location('Kitchen')
 masterPlan['Kitchen']['VARIABLE'] = kitchen
-kitchen.whatInRoom({'Shabby cupboard':['Bandage','Worm-ridden bag of flour'],
+kitchen.what_in_room({'Shabby cupboard':['Bandage','Worm-ridden bag of flour'],
                 'Wooden box':['Sack of turnips','Bunch of carrots'],
                 'Kitchen counter':['Severed head of lady Durst']
                 })
 longHallway = Location('Long hallway')
 masterPlan['Long hallway']['VARIABLE'] = longHallway
-longHallway.whatInRoom({'Painting of a landscape':['"Merry marshes" by Catherine Durst: oil on canvas'],
+longHallway.what_in_room({'Painting of a landscape':['"Merry marshes" by Catherine Durst: oil on canvas'],
                 'Secret stash':['Huge ruby','Bloody ringfinger','Bullet'],
                 'First aid lockbox':['Bandage','Bandage','Antidote']
                 })
 storageRoom = Location('Storage room')
 masterPlan['Storage room']['VARIABLE'] = storageRoom
-storageRoom.whatInRoom({'Old backpack':['Shotgun shell','Antidote','Ancient coin',
+storageRoom.what_in_room({'Old backpack':['Shotgun shell','Antidote','Ancient coin',
                 'Hardtack','Hardtack'],
                 })
 stairs = Location('Stairs')
 masterPlan['Stairs']['VARIABLE'] = stairs
-stairs.whatInRoom({
+stairs.what_in_room({
                 })
 moldyHallway = Location('Moldy hallway')
 masterPlan['Moldy hallway']['VARIABLE'] = moldyHallway
-moldyHallway.whatInRoom({
+moldyHallway.what_in_room({
                         })
 galleryNE = Location('Gallery NE')
 masterPlan['Gallery NE']['VARIABLE'] = galleryNE
-galleryNE.whatInRoom({'Huge cocoon':['Slimy eggsack','Half-digested cat'],
+galleryNE.what_in_room({'Huge cocoon':['Slimy eggsack','Half-digested cat'],
                 'Small cocoon':['Black sludge'],
                 'Web-covered display case':['Shotgun shell','Ceremonial dagger','Tribal leather bracelet'],
                 'Loose brick':['Dead rat']
                 })
 galleryE = Location('Gallery E')
 masterPlan['Gallery E']['VARIABLE'] = galleryE
-galleryE.whatInRoom({'Small cocoon':['Spiderling']
+galleryE.what_in_room({'Small cocoon':['Spiderling']
                     })
 gallerySE = Location('Gallery SE')
 masterPlan['Gallery SE']['VARIABLE'] = gallerySE
-gallerySE.whatInRoom({
+gallerySE.what_in_room({
                     })
 galleryS = Location('Gallery S')
 masterPlan['Gallery S']['VARIABLE'] = galleryS
-galleryS.whatInRoom({'Web-covered shoe box':['Brown teddy bear']
+galleryS.what_in_room({'Web-covered shoe box':['Brown teddy bear']
                     })
 gallerySW = Location('Gallery SW')
 masterPlan['Gallery SW']['VARIABLE'] = gallerySW
-gallerySW.whatInRoom({'Destroyed display cabinet':['Golden necklace']
+gallerySW.what_in_room({'Destroyed display cabinet':['Golden necklace']
                     })
 galleryW = Location('Gallery W')
 masterPlan['Gallery W']['VARIABLE'] = galleryW
-galleryW.whatInRoom({
+galleryW.what_in_room({
                     })
 galleryNW = Location('Gallery NW')
 masterPlan['Gallery NW']['VARIABLE'] = galleryNW
-galleryNW.whatInRoom({
+galleryNW.what_in_room({
                     })
+childrensBedroom = Location('Childrens bedroom')
+masterPlan['Childrens bedroom']['VARIABLE'] = childrensBedroom
 galleryN = Location('Gallery N')
+childrensBedroom.what_in_room({'Toy chest':['Wooden train','Tea set'],
+                            'Shoebox':['Deck of playing cards','Bandage']
+                            })
 masterPlan['Gallery N']['VARIABLE'] = galleryN
-galleryN.whatInRoom({'Discarded holster':['Bandage','Shotgun shell']
+galleryN.what_in_room({'Discarded holster':['Bandage','Shotgun shell']
                     })
 masterBedroom = Location('Master bedroom')
 masterPlan['Master bedroom']['VARIABLE'] = masterBedroom
-masterBedroom.whatInRoom({
+masterBedroom.what_in_room({
                         })
 study = Location('Study')
 masterPlan['Study']['VARIABLE'] = study
-study.whatInRoom({'Painting of a city panorama':['"Smothering smog" by Catherine Durst: oil on canvas'],
+study.what_in_room({'Painting of a city panorama':['"Smothering smog" by Catherine Durst: oil on canvas'],
                 'Iron lockbox':['Shotgun shell','Bullet','Bullet','Steel arrowhead'],
                 'Shelves':['"The king in yellow"','"Victorian handbook of poisons"']
                 }) 
 vault = Location('Vault')
 masterPlan['Vault']['VARIABLE'] = vault
-vault.whatInRoom({'Old pouch':['Strange rune']
+vault.what_in_room({'Old pouch':['Strange rune']
                 }) 
 safe = Location('Safe')
 masterPlan['Safe']['VARIABLE'] = safe
-safe.whatInRoom({'Glass display case':['Strange clockwork device'],
+safe.what_in_room({'Glass display case':['Strange clockwork device'],
                 'Ornate display case':['Jade statue'],
                 'Treasure chest':['Pile of gold coins','Assortment of precious stones'],
                 'Stone coffin':['Remains of Catherine Durst','Blood-soaked handkerchief']
@@ -912,22 +953,22 @@ safe.whatInRoom({'Glass display case':['Strange clockwork device'],
 
 #GAMEPLAY STARS HERE
 
-printBold('Barry the Butler says: "Welcome to the haunted house."')
-printBold('Barry the Butler says: "How would you like to be addressed?."')
+print_bold('Barry the Butler says: "Welcome to the haunted house."')
+print_bold('Barry the Butler says: "How would you like to be addressed?."')
 player_name = input()
 player = Player(player_name, 50, 12)
 backpack = Container('Backpack')
 backpack.add('PST: Personal Statistics Tracker')
-printBold('Barry the Butler says: "' + player.name + ', the house holds many treasures."')
-printBold('''
+print_bold('Barry the Butler says: "' + player.name + ', the house holds many treasures."')
+print_bold('''
 Barry the Butler says: "To navigate the premises and carry out actions, just type the capitalized letters.
                         You can choose directions by typing N, S, E or W. Notice that not all items 
                         are usable - when inspecting your inventory, usable items will be highlighted."''')
 
-printBold('''
+print_bold('''
 Barry the Butler says: "And if you`re looking for the vault, be warned - you need to collect 4 keys.'
                         The keys, while not directly usable, are highlighted in yellow."''')
-printBold('Barry the Butler says: "Enjoy your stay."')
+print_bold('Barry the Butler says: "Enjoy your stay."')
 player.in_house = 1
 weapon_arsenal = {'Fists':[1,6], 
                   'Axe':[4,10],
@@ -940,7 +981,7 @@ while player.in_house and player.alive:
     player.moves()
     if not player.in_house: break
     if random.randrange(1,100) < 20:
-            monster = masterPlan[player.location]['VARIABLE'].hasEnemy()
+            monster = masterPlan[player.location]['VARIABLE'].has_enemy()
             player,monster = combat(player,monster) 
 
 if not player.in_house:
