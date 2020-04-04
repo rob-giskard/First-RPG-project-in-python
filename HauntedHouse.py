@@ -1,6 +1,9 @@
 import random
 import sys
 from termcolor import colored, cprint
+import colorama
+
+colorama.init()
 
 def print_bold(text):
     print(colored(text,attrs=['bold']))
@@ -200,13 +203,17 @@ class Player(Entity):
             print('***Item not usable.***')
     
     def sees_exits(self):
-        pass
-
-
+         exits = ['NORTH','SOUTH','EAST','WEST']
+         for possible_exit in exits:
+            if masterPlan[self.location][possible_exit] not in ['Wall','Railing','Outside']:
+                print_green('    ' + possible_exit)
+          
     def moves(self):
         move_chosen = 0
+        print('\nFrom your current location you can move:')
+        player.sees_exits()
         while not move_chosen:
-            direction = input('\nChoose a direction to move to.').lower()
+            direction = input('Choose a direction to move to.').lower()
             while len(direction) == 0 or direction.lower()[0] not in ['n','s','e','w']:
                 direction = input('Invalid direction. Where do you want to go?').lower()
             if direction.startswith('n'): dest = 'NORTH'
@@ -336,7 +343,6 @@ class Location:
             if 'Severed head of lady Durst' in backpack.contents and 'Remains of Catherine Durst' in backpack.contents:
                 self.solved = 1
                 print_yellow('''
-
     You place the remains of lady Durst beside the dead man and position 
     her head on the pillow. A deep sigh penetrates the whole house and 
     you can almost hear a happy couple laughing together. Suddenly, the 
@@ -349,7 +355,6 @@ class Location:
             if 'Photograph of Benjamin Durst' in backpack.contents and 'Brown teddy bear' in backpack.contents:
                 self.solved = 1
                 print_yellow('''
-
     You place the photograph of Benjamin Durst in one of the empty picture 
     frames and arrange the brown teddy bear so it sits among the other stuffed 
     animals on one of the beds. The room is filled with laughter and a half-transparent
@@ -361,7 +366,7 @@ class Location:
                 print_yellow('\n    It seems you are missing a crucial item here.')
         
         elif self.name == 'Moldy hallway':
-            player.condition = 'Pisoned'
+            player.condition = 'Poisoned'
             print_yellow ('''
     You start coughing uncontrollably. Better hope you didn't breathe in too many
     of the microscopic particles swirling around you. Otherwise, your health could
@@ -478,7 +483,7 @@ class Location:
                 player.checks_inventory()
                 player.checks_usables()
                 if player.has_usables:
-                    player.usesItem()
+                    player.uses_item()
             if room_choice[0] == 'r':
                 room_exit_lines = ['\n    You push your luck and face another mystery.', 
                             '\n    You leave the area and journey deeper into the house.',
@@ -529,10 +534,10 @@ def combat(player,monster):
             else:
                 player.checks_usables()
                 if player.has_usables:
-                    player.usesItem()
-                if monster.stunned:
-                    monster.is_attacked(11,random.randint(weapon_arsenal[player.weapon][0],weapon_arsenal[player.weapon][1]))
-                    monster.stunned = 0
+                    player.uses_item()
+                    if monster.stunned:
+                        monster.is_attacked(11,random.randint(weapon_arsenal[player.weapon][0],weapon_arsenal[player.weapon][1]))
+                        monster.stunned = 0
                     if player.weapon == 'Shotgun': player.fires_shotgun()
                     elif player.weapon == 'Revolver pistol': player.fires_pistol()
                     if not monster.alive:
@@ -674,8 +679,8 @@ masterPlan = {
         'VARIABLE': '',
         'POSITION': 'house.secondFloor[3][4]',
         'DESCRIPTION': '''
-    The roof is leaking somewhere above this hallway. The walls are covered in thick
-    mold and the air is filled with spores. 
+    The roof is leaking somewhere above this hallway. The walls are covered by 
+    a thick layer of mold and the air is filled with spores. 
     ''',
         'NORTH': 'Stairs',
         'SOUTH': 'Gallery NE',
@@ -996,4 +1001,3 @@ if not player.in_house:
                 print('  ' + item)
     else:
         print('\n *** Unfortunately, you got out empty-handed. *** ')
-
