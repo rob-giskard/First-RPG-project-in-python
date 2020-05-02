@@ -44,7 +44,8 @@ class Entity:
         self.in_room = 0
         self.location = 'Foyer'
         self.fighting = 0
-        
+        self.deeds = 0
+
     def __str__(self):
         return ('This ' + self.name + ' has ' + str(self.HP) + ' HP and '+ str(self.AC) + ' AC.') 
     
@@ -105,7 +106,7 @@ class Player(Entity):
     def chooses_weapon(self):
         print('\nYou have the following weapons at your disposal:')
         for key in weapon_arsenal.keys():
-            print('  ' + key)
+            print_red('  ' + key)
         weapon_type = ''
         while weapon_type == '':
             weapon_type = input('Which weapon to use?').lower()
@@ -205,7 +206,7 @@ class Player(Entity):
     def sees_exits(self):
          exits = ['NORTH','SOUTH','EAST','WEST']
          for possible_exit in exits:
-            if masterPlan[self.location][possible_exit] not in ['Wall','Railing','Outside']:
+            if masterPlan[self.location][possible_exit] not in ['Wall','Railing']:
                 print_green('    ' + possible_exit)
           
     def moves(self):
@@ -228,18 +229,41 @@ class Player(Entity):
                 if leave.startswith('y'): player.in_house,move_chosen = 0,1
             elif masterPlan[self.location][dest] == 'Railing': 
                 print_yellow('\n    The railings prevent you from falling off the gallery.')     
-            elif masterPlan[self.location][dest] == 'Safe':
+            elif masterPlan[self.location][dest] == 'Safe' and vault.solved == 0:
                 if self.number_of_keys < 4:
                      print_yellow('''
     You are missing the necessary keys and are not able to open all of the locks. 
     Try to explore more of the house and return back later.
                                 ''')
                 else: 
-                    print_yellow('\n    You move ' + dest)
+                    print_yellow('\n    One by one you open all of the four locks and move ' + dest)
+                    vault.solved = 1
                     self.location = masterPlan[self.location][dest]
                     move_chosen = 1
+            elif masterPlan[self.location][dest] == 'Laboratory' and shortHallway.solved == 0:
+                if 'Crowbar' not in backpack.contents:
+                    print_yellow('''
+    The heavy wooden door seems nailed shut with sturdy planks. It won't budge.
+    Would you kindly pick up a crowbar or something?            
+                            ''')
+                else:
+                    print_yellow('\n    You discard the planks barring the door and move ' + dest)
+                    self.location = masterPlan[self.location][dest]
+                    shortHallway.solved = 1
+                    move_chosen = 1
+            elif masterPlan[self.location][dest] == 'Ball room' and grandHall.solved == 0:
+                if 'Crowbar' not in backpack.contents:
+                    print_yellow('''
+    The double door before you is jammed. Your attempts to progress in this 
+    direction seem futile. This will require an instrument of some sorts.             
+                            ''')
+                else:
+                    print_yellow('\n    You use the crowbar as a lever and move ' + dest)
+                    self.location = masterPlan[self.location][dest]
+                    grandHall.solved = 1
+                    move_chosen = 1
             else: 
-                print_yellow('\n    You move ' + dest)
+                print_yellow('\n    You move ' + dest + '.')
                 self.location = masterPlan[self.location][dest]
                 move_chosen = 1
     
@@ -306,7 +330,7 @@ class Container:
                 player.in_room, player.in_house = 0,0
 
     def hides_key(self):
-        if random.randrange(1,100) < 30 and len(key_types)!=0:
+        if random.randrange(1,100) < 20 and len(key_types)!=0:
             type_of_key = random.choice(key_types)
             self.contents.append(type_of_key)
             key_types.remove(type_of_key)
@@ -327,7 +351,7 @@ class Location:
         self.conts_abb = []
         self.conts_list = []
         self.solved = 0
-
+        
     def __str__(self):
         return self.name
 
@@ -339,9 +363,11 @@ class Location:
         print_yellow('                               # ' + self.name + ' #')
         print_yellow('                               ##' + len(self.name)*'#' + '##\n')
         print_yellow(self.description)
+        
         if self.name == 'Master bedroom' and not self.solved:
             if 'Severed head of lady Durst' in backpack.contents and 'Remains of Catherine Durst' in backpack.contents:
                 self.solved = 1
+                player.deeds += 1
                 print_yellow('''
     You place the remains of lady Durst beside the dead man and position 
     her head on the pillow. A deep sigh penetrates the whole house and 
@@ -354,6 +380,7 @@ class Location:
         elif self.name == 'Childrens bedroom' and not self.solved:
             if 'Photograph of Benjamin Durst' in backpack.contents and 'Brown teddy bear' in backpack.contents:
                 self.solved = 1
+                player.deeds += 1
                 print_yellow('''
     You place the photograph of Benjamin Durst in one of the empty picture 
     frames and arrange the brown teddy bear so it sits among the other stuffed 
@@ -365,7 +392,7 @@ class Location:
             else:
                 print_yellow('\n    It seems you are missing a crucial item here.')
         
-        elif self.name == 'Moldy hallway':
+        elif self.name == 'Moldy hallway' and player.condition != 'Poisoned':
             player.condition = 'Poisoned'
             print_yellow ('''
     You start coughing uncontrollably. Better hope you didn't breathe in too many
@@ -373,16 +400,47 @@ class Location:
     be in serious danger.            
                         ''')
 
+        elif self.name == 'Storage room' and not self.solved:
+            print_yellow('''
+    You find yourself facing a caged animal. It resembles a wolf with open wounds 
+    on various parts of its body. At first glance, its threatening presence 
+    shocks you. But examining it further, you see sadness and an unspoken
+    plea for help in its eyes. The cage is sealed with heavy chains.
+
+    It seems you are missing a crucial item here.         
+            ''')
+            if 'Crowbar' in backpack.contents and 'Appetizing thighbone' in backpack.contents:
+                self.solved = 1
+                player.deeds += 1
+                print_yellow('''
+    You throw the huge bone inside the cage and it immediately picks it up. Then you
+    take your window of opportunity and twist the chain with the crowbar until it snap.
+    The cage opens. The hound looks at you and considers having a more nutritious meal.
+    However, it nods at you in a distinctly human-like manner, expressing gratitude.
+    Then it bolts out of the storage room towards the front door. 
+                ''')
+            elif 'Crowbar' in backpack.contents and not 'Appetizing thighbone' in backpack.contents:
+                print_yellow('''
+    You realize you could free the beast using your crowbar. However, it would be 
+    extremely dangerous to approach the cage with the starving beast still inside.
+    You are still missing a crucial item here.            
+                ''')
+
     def has_enemy(self):    
-        creatures = ['Groggy ghost','Blob of goo','Ghoul','Poltergeist',
-                     'Ghastly pirate','Sad vampire','Lidless eye','Moaning monster',
+        creatures = ['Groggy ghost','Blob of goo','Ghastly ghoul','Poltergeist',
+                     'Panting pirate','Sad vampire','Lidless eye','Moaning monster',
                      'Chucking woodchuck','Batswarm','Striga','Besny havko',
                      'Creepy doll','Axe murderer','Norman Bates','Starving servant',
-                     'Desperate tester'
+                     'Desperate tester','Gelatinous cube','Constrictor vine',
+                     'Debilitating devil','Promiscuous python','Flying falchion',
+                     'Mysterious mist','Generic villain'
                     ]
-        monster = Entity(random.choice(creatures),18,10)
+        creature = random.choice(creatures)
+        if creature != 'Generic villain':
+             creatures.remove(creature)
+        monster = Entity(creature,18,10)
 
-        print_yellow('\n    After entering the ' + self.name.lower() + ', you are attacked by a '+ monster.name +'.')
+        print_red('\n    After entering the ' + self.name.lower() + ', you are attacked by a '+ monster.name +'.')
         player.fighting = 1
         player.chooses_weapon()
         return monster 
@@ -423,7 +481,7 @@ class Location:
         while player.in_room:
             if len(self.conts_list) != 0:
                 print_under('\nThe following objects catch your eye:\n')
-                for c in self.containers: print(c)
+                for c in self.containers: print_green(c)
                 print('\nYou can also check your Backpack, push on to another Room or Escape screaming.')
 
             else:
@@ -607,6 +665,18 @@ masterPlan = {
         'NORTH': 'Wall',
         'SOUTH': 'Wall',
         'EAST': 'Grand hall',
+        'WEST': 'Ball room'    
+    },
+    'Ball room':{
+        'VARIABLE': '',
+        'POSITION': 'house.firstFloor[5][1]',
+        'DESCRIPTION': '''
+    This vast space was once full of happy people. Now only bones litter the dance floor.
+    Many of them bear toothmarks of tiny rodents.  
+    ''',
+        'NORTH': 'Wall',
+        'SOUTH': 'Wall',
+        'EAST': 'Drawing room',
         'WEST': 'Wall'    
     },
     'Short hallway':{
@@ -620,9 +690,34 @@ masterPlan = {
     ''',
         'NORTH': 'Kitchen',
         'SOUTH': 'Grand hall',
-        'EAST': 'Wall',
+        'EAST': 'Laboratory',
         'WEST': 'Wall'    
     },
+    'Laboratory':{
+        'VARIABLE': '',
+        'POSITION': 'house.firstFloor[4][4]',
+        'DESCRIPTION': '''
+    The space tight space around you is cluttered with alchemical supplies 
+    and strange contraptions. A number of jars sit on dusty shelves, each
+    containing unknown substances.
+    ''',
+        'NORTH': 'Wall',
+        'SOUTH': 'Wall',
+        'EAST': 'Secret stairs',
+        'WEST': 'Short hallway'
+    },    
+    'Secret stairs':{
+        'VARIABLE': '',
+        'POSITION': 'house.firstFloor[4][5]',
+        'DESCRIPTION': '''
+    This secret stairway was probably used exclusively by the owners of the house 
+    for quick and discreet movement through the innards of their home.
+    ''',
+        'NORTH': 'Wall',
+        'SOUTH': 'Wall',
+        'EAST': 'Safe',
+        'WEST': 'Laboratory'
+    },    
     'Kitchen':{
         'VARIABLE': '',
         'POSITION': 'house.firstFloor[3][3]',
@@ -666,9 +761,7 @@ masterPlan = {
         'VARIABLE': '',
         'POSITION': 'house.firstFloor[2][2]',
         'DESCRIPTION': '''
-    You open the door to a small storage room and find yourself 
-    facing a caged animal. It looks like a huge wolf with open wounds 
-    on various parts of its body. 
+    You open the door to a small storage room.
     ''',
         'NORTH': 'Wall',
         'SOUTH': 'Wall',
@@ -842,7 +935,7 @@ masterPlan = {
         'NORTH': 'Wall',
         'SOUTH': 'Vault',
         'EAST': 'Wall',
-        'WEST': 'Wall'    
+        'WEST': 'Secret stairs'    
     }
 }
 
@@ -865,9 +958,25 @@ masterPlan['Drawing room']['VARIABLE'] = drawingRoom
 drawingRoom.what_in_room({'Porcelain teapot':['Dead cockroach'],
                 'Cigar box':['Soaked cigar','Silver lighter'],
                 })
+ballRoom = Location('Ball room')
+masterPlan['Ball room']['VARIABLE'] = ballRoom
+ballRoom.what_in_room({'Old piano':['Sheet music: "Lullaby for Lloyd"'],
+                'Pile of bones':['Diamond ring','Appetizing thighbone'],
+                })
 shortHallway = Location('Short hallway')
 masterPlan['Short hallway']['VARIABLE'] = shortHallway
 shortHallway.what_in_room({'Ornate picture frame':['Photograph of Benjamin Durst'],
+                        })
+laboratory = Location('Laboratory')
+masterPlan['Laboratory']['Variable'] = laboratory
+laboratory.what_in_room({'Wooden box':['Bandage'],
+                    'Leather case':['Mysterious glass vial','Antidote','Bandage'],
+                    'Toolbox':['Crowbar','Screwdriver'],
+                    'Shelf':['Aged wine','Potion']
+                        })
+secretStairs = Location('Secret stairs')
+masterPlan['Secret stairs']['VARIABLE'] = secretStairs
+secretStairs.what_in_room({'Hidden stash':['Bullet','Shotgun shell','Hardtack']
                         })
 kitchen = Location('Kitchen')
 masterPlan['Kitchen']['VARIABLE'] = kitchen
@@ -957,7 +1066,14 @@ safe.what_in_room({'Glass display case':['Strange clockwork device'],
                 }) 
 
 #GAMEPLAY STARS HERE
-
+'''
+speech = 'Barry the Butler says: "Welcome to the haunted house.'
+sys.stdout(speech)
+for char in speech:
+    sys.stdout.write(char)
+    sys.stdout.flush()
+    time.sleep(0.05)
+'''
 print_bold('Barry the Butler says: "Welcome to the haunted house."')
 print_bold('Barry the Butler says: "How would you like to be addressed?."')
 player_name = input()
@@ -991,13 +1107,27 @@ while player.in_house and player.alive:
 
 if not player.in_house:
     if not player.alive:
-        print('\n *** The house claimed your soul. The treasures remain lost. *** ')
+        print_yellow('\n    The house claimed your soul. The treasures remain lost.')
     elif len(backpack.contents) > 1:
-        print('\n *** You escaped with the following treasure: *** ')
+        print_yellow('\n    You escaped with the following treasure:/n')
         for item in backpack.contents:
             if item == 'PST: Personal Statistics Tracker':
                 continue
             else:
                 print('  ' + item)
     else:
-        print('\n *** Unfortunately, you got out empty-handed. *** ')
+        print_yellow('\n    Unfortunately, you got out empty-handed.')
+
+    if player.deeds == 0:
+        print_yellow('\n    ' + player.name + ', you accomplished no good deeds in the house.') 
+        print_yellow('    There was more to be done, but who said it was your job...')
+    elif player.deeds > 0 and player.deeds < 3:
+        print_yellow('\n    Good deeds accomplished: ' + str(player.deeds) + '.')
+        print_yellow("    " + player.name + ", the haunted house is still a restless place, but your visit won't be forgotten.")
+    elif player.deeds == 3:
+        print_yellow('\n    Congratulations, ' + player.name + '!')
+        print_yellow('''
+    You proved hope always prevails. You reunited the lady and lord Durst,
+    honored the memory of a troubled child and freed a tortured spirit from its cage.
+    Thanks to you, the haunted house will rest in peace. 
+    ''')
